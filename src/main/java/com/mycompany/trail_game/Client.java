@@ -1,15 +1,15 @@
 package com.mycompany.trail_game;
 
 import java.awt.Color;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.net.Socket;
+import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 
 public class Client extends javax.swing.JFrame {
 
-    private ConnectionGame clientGame;
-    private ConexaoChat clientChat;
+    private IServerService serverService;
     private int idPlayer;
     private int otherPlayer;
     private int[] positions;
@@ -32,17 +32,26 @@ public class Client extends javax.swing.JFrame {
         requestDraw = false;
         gameEnd = false;
 
-        //Conexão para o jogo e para o chat
-        this.connectServer();
+        String localization = "//localhost/serverService";
+
+        try {
+            serverService = (IServerService) Naming.lookup(localization);
+            idPlayer = serverService.informPlayerId();
+
+            if (idPlayer == -1) {
+                System.exit(0);
+            }
+
+            PlayerImpl player = new PlayerImpl();
+            String playerLocalization = "//localhost/player" + idPlayer;
+
+            Naming.rebind(playerLocalization, player);
+            serverService.informLocalization(playerLocalization, idPlayer);
+        } catch (MalformedURLException | NotBoundException | RemoteException e) {
+            System.out.println("Erro no construtor do jogador: " + e.getMessage());
+        }
 
         initComponents();
-
-        Thread threadChat = new Thread(new Runnable() {
-            public void run() {
-                executaChat();;
-            }
-        });
-        threadChat.start();
 
         this.setTitle("Jogador " + idPlayer + " - Trail game");
 
@@ -52,28 +61,18 @@ public class Client extends javax.swing.JFrame {
             title.setBackground(red);
             otherPlayer = 2;
             activeButtons = false;
+            chatField.setEnabled(false);
+            chatButton.setEnabled(false);
         } else {
             title.setText("Jogador 2. Aguarde seu turno.");
             Color blue = new Color(0x3394e8);
             title.setBackground(blue);
             otherPlayer = 1;
             activeButtons = false;
-
-            Thread t = new Thread(new Runnable() {
-                public void run() {
-                    controlTurn();;
-                }
-            });
-            t.start();
         }
 
         updateButtonsStates();
 
-    }
-
-    public void connectServer() {
-        clientGame = new ConnectionGame();
-        clientChat = new ConexaoChat();
     }
 
     public void updateButtonsStates() {//Habilita os botões de acordo com seu turno
@@ -101,6 +100,81 @@ public class Client extends javax.swing.JFrame {
         b22.setEnabled(activeButtons);
         b23.setEnabled(activeButtons);
         b24.setEnabled(activeButtons);
+
+        if (qtdPieces < 9) {
+            if (positions[0] > 0) {
+                b1.setEnabled(false);
+            }
+            if (positions[1] > 0) {
+                b2.setEnabled(false);
+            }
+            if (positions[2] > 0) {
+                b3.setEnabled(false);
+            }
+            if (positions[3] > 0) {
+                b4.setEnabled(false);
+            }
+            if (positions[4] > 0) {
+                b5.setEnabled(false);
+            }
+            if (positions[5] > 0) {
+                b6.setEnabled(false);
+            }
+            if (positions[6] > 0) {
+                b7.setEnabled(false);
+            }
+            if (positions[7] > 0) {
+                b8.setEnabled(false);
+            }
+            if (positions[8] > 0) {
+                b9.setEnabled(false);
+            }
+            if (positions[9] > 0) {
+                b10.setEnabled(false);
+            }
+            if (positions[10] > 0) {
+                b11.setEnabled(false);
+            }
+            if (positions[11] > 0) {
+                b12.setEnabled(false);
+            }
+            if (positions[12] > 0) {
+                b13.setEnabled(false);
+            }
+            if (positions[13] > 0) {
+                b14.setEnabled(false);
+            }
+            if (positions[14] > 0) {
+                b15.setEnabled(false);
+            }
+            if (positions[15] > 0) {
+                b16.setEnabled(false);
+            }
+            if (positions[16] > 0) {
+                b17.setEnabled(false);
+            }
+            if (positions[17] > 0) {
+                b18.setEnabled(false);
+            }
+            if (positions[18] > 0) {
+                b19.setEnabled(false);
+            }
+            if (positions[19] > 0) {
+                b20.setEnabled(false);
+            }
+            if (positions[20] > 0) {
+                b21.setEnabled(false);
+            }
+            if (positions[21] > 0) {
+                b22.setEnabled(false);
+            }
+            if (positions[22] > 0) {
+                b23.setEnabled(false);
+            }
+            if (positions[23] > 0) {
+                b24.setEnabled(false);
+            }
+        }
 
         updateImagesButtons();
     }
@@ -546,93 +620,7 @@ public class Client extends javax.swing.JFrame {
         }
     }
 
-    public void controlTurn() {
-        //Aguarda seu turno enquanto recebe uma jogada válida do adversário
-        int n = clientGame.receiveMove();
-        title.setText("Seu adversário clicou o botão " + n + ". Sua vez");
-        //No início do jogo apenas dispões as peças no tabuleiro
-        if (qtdPiecesAdv < 9) {
-            //Atualiza o vetor com a jogada recebida do adversário
-            if (idPlayer == 1) {
-                positions[n - 1] = 2;
-            } else {
-                positions[n - 1] = 1;
-            }
-            qtdPiecesAdv++;
-        } else {//Desenvolvimento do jogo após peças dispostas
-            //Procura qual posicao não possui nenhuma peça
-            //Atualiza o vetor trocando a jogada do advserário com a posição vazia
-            lastPosition = clientGame.receiveMove();
-            if (idPlayer == 1) {//n-1 é a posição do botão na interface
-                positions[lastPosition] = 0;
-                positions[n - 1] = 2;
-            } else {
-                positions[lastPosition] = 0;
-                positions[n - 1] = 1;
-            }
-        }
-        //Só habilita a movimentação de peças após as 6 estiverem dispostas no tabuleiro
-        if (qtdPieces == 9 && qtdPiecesAdv == 9) {
-            //Habilita somente as peças do jogador correspondente ao turno
-            if (idPlayer == 1) {
-                alterButtonsStates(1, true);
-                alterButtonsStates(2, false);
-            } else {
-                alterButtonsStates(2, true);
-                alterButtonsStates(1, false);
-            }
-
-            updateImagesButtons();
-        } else {//No início do jogo apenas atualiza o tabuleiro de acordo com as peças colocadas
-            activeButtons = true;
-            updateButtonsStates();
-        }
-
-    }
-
-    public void executaChat() {
-        String msgRecebida = "";
-        //Execução da thread chat
-        while (!msgRecebida.equals("exit")) {
-            msgRecebida = clientChat.receiveMsg();
-
-            if (msgRecebida.equals("/d") && !gameEnd) {
-                chatArea.setText(chatArea.getText() + "\n Você venceu! Seu adversario desistiu.");
-                title.setText("Você venceu! Seu adversario desistiu.");
-                disableAllButtons();
-                gameEnd = true;
-            } else if (msgRecebida.equals("/e") && !gameEnd) {
-                if (requestDraw) {
-                    chatArea.setText(chatArea.getText() + "\n Jogadores concordaram com empate.\n Fim de jogo.");
-                    title.setText("Fim de jogo! Jogadores concordaram com empate. ");
-                    disableAllButtons();
-                    clientChat.sendMsg("/e");
-                    requestDraw = false;
-                    gameEnd = true;
-                } else {
-                    chatArea.setText(chatArea.getText() + "\n Seu adversário solicitou empate\n Envie /e para aceitar.");
-                }
-            } else if (msgRecebida.equals("/f")) {
-                chatArea.setText(chatArea.getText() + "\n Fim de jogo. Você perdeu!");
-                title.setText("Fim de jogo! Você perdeu.");
-                disableAllButtons();
-                gameEnd = true;
-            } else if (msgRecebida.equals("/i")) {//Quando os dois se conectam o jogador 1 pode jogar
-                if (idPlayer == 1) {
-                    activeButtons = true;
-                    updateButtonsStates();
-                    title.setText("Jogador #1. Inicie a partida!");
-                    chatArea.setText("Jogador #2 se conectou.");
-                }
-            } else if (!msgRecebida.isBlank()) {
-                chatArea.setText(chatArea.getText() + "\n Adversario: " + msgRecebida);
-            }
-            chatArea.setCaretPosition(chatArea.getText().length());
-        }
-
-    }
-
-    public void cliqueBotao(int n) {
+    public void buttonClick(int n) {
         //No início do jogo, apenas marca a posição com a cor de sua peça
         if (qtdPieces < 9) {
             if (idPlayer == 1) {
@@ -645,64 +633,43 @@ public class Client extends javax.swing.JFrame {
             title.setText("Você clicou o botão #" + n + ". Agora a vez do jogador #" + otherPlayer);
 
             activeButtons = false;
-            if(qtdPieces == 9) {activeButtons = true; clickCounter = 0;}
-            updateButtonsStates();
-            clientGame.sendMove(n);
-
-            Thread t = new Thread(new Runnable() {
-                public void run() {
-                    controlTurn();;
-                }
-            });
-            t.start();
-
-        } else if(clickCounter == 1) {
-            
-        } 
-        else if (clickCounter == 2) {//Movimentação de peças
-            clickCounter = 0;
-            if (idPlayer == 1) {
-                positions[n - 1] = 1;
-                positions[lastPosition] = 0;
-            } else {
-                positions[n - 1] = 2;
-                positions[lastPosition] = 0;
+            if (qtdPieces == 9) {
+                activeButtons = true;
+                clickCounter = 0;
             }
-            //Só troca o turno quando a jogada é válida, no início todas serão válidas
-            title.setText("Você clicou o botão #" + n + ". Agora a vez do jogador #" + otherPlayer);
-
-            activeButtons = true;
             updateButtonsStates();
-            clientGame.sendMove(n);
-            clientGame.sendMove(lastPosition);
-            Thread t = new Thread(new Runnable() {
-                public void run() {
-                    controlTurn();;
-                }
-            });
-            t.start();
-
-        }
-
-    }
-    
-    public void mudaBotaoParaVazio(javax.swing.JButton botao) {
-        if (qtdPieces < 9) {
-            botao.setIcon(new javax.swing.ImageIcon(getClass().getResource("/espacoVazio.png")));
-        }
-    }
-
-    public void mudaCorBotao(javax.swing.JButton botao) {
-        if (qtdPieces < 9) {
-            if (idPlayer == 1) {
-                botao.setIcon(new javax.swing.ImageIcon(getClass().getResource("/pecaVermelha.png")));
-            } else {
-                botao.setIcon(new javax.swing.ImageIcon(getClass().getResource("/pecaAzul.png")));
+            try {
+                serverService.sendMove(n, lastPosition, otherPlayer);
+            } catch (RemoteException e) {
+                System.out.println("Erro no buttonClick do jogador: " + e.getMessage());
             }
+
+        } else if (clickCounter == 2) {
+            try {
+                //Movimentação de peças
+                clickCounter = 0;
+                if (idPlayer == 1) {
+                    positions[n - 1] = 1;
+                    positions[lastPosition] = 0;
+                } else {
+                    positions[n - 1] = 2;
+                    positions[lastPosition] = 0;
+                }
+                //Só troca o turno quando a jogada é válida, no início todas serão válidas
+                title.setText("Você clicou o botão #" + n + ". Agora a vez do jogador #" + otherPlayer);
+
+                activeButtons = true;
+                updateButtonsStates();
+                serverService.sendMove(n, lastPosition, otherPlayer);
+            } catch (RemoteException e) {
+                System.out.println("Erro no buttonClick do jogador: " + e.getMessage());
+            }
+
         }
+
     }
 
-    public void enviarMensagemChat() {
+    public void sendChatMsg() {
         String msg = "";
         msg = chatField.getText();
 
@@ -721,112 +688,108 @@ public class Client extends javax.swing.JFrame {
         } else if (!msg.isBlank()) {
             chatArea.setText(chatArea.getText() + "\n Eu: " + msg);
         }
-        clientChat.sendMsg(msg);
+        try {
+            serverService.sendMsg(msg, otherPlayer);
+        } catch (RemoteException e) {
+            System.out.println("Erro no enviaMensagemChat do jogador: " + e.getMessage());
+        }
         chatField.setText("");
     }
 
-    private class ConnectionGame {
+    public class PlayerImpl extends UnicastRemoteObject implements IPlayerService {
 
-        private Socket socket;
-        private DataInputStream input;
-        private DataOutputStream output;
-
-        public ConnectionGame() {
-            System.out.println("Cliente");
-
-            try {
-                //Se conecta via socket ao jogo do servidor
-                socket = new Socket("localhost", 51734);
-                input = new DataInputStream(socket.getInputStream());
-                output = new DataOutputStream(socket.getOutputStream());
-                //Recebe seu id de conexão
-                idPlayer = input.readInt();
-                System.out.println("Conectado ao servidor como Jogador #" + idPlayer + ".");
-            } catch (IOException ex) {
-                System.out.println("Erro no construtor do ConexaoJogo");
-            }
+        public PlayerImpl() throws RemoteException {
+            super();
+            System.out.println("----- Jogador #" + idPlayer + " -----");
         }
 
-        public void sendMove(int n) {
-            try {
-                output.writeInt(n);
-                output.flush();
-            } catch (IOException ex) {
-                System.out.println("Erro no enviaJogada() do Jogador");
+        @Override
+        public void updateChat(String msg) throws RemoteException {
+            if (msg.equals("/d") && !gameEnd) {
+                chatArea.setText(chatArea.getText() + "\n Você venceu! Seu adversario desistiu.");
+                title.setText("Você venceu! Seu adversario desistiu.");
+                disableAllButtons();
+                gameEnd = true;
+            } else if (msg.equals("/e") && !gameEnd) {
+                if (requestDraw) {
+                    chatArea.setText(chatArea.getText() + "\n Jogadores concordaram com empate.\n Fim de jogo.");
+                    title.setText("Fim de jogo! Jogadores concordaram com empate. ");
+                    disableAllButtons();
+                    //clienteChat.enviaMensagem("/e");
+                    requestDraw = false;
+                    gameEnd = true;
+
+                    try {
+                        serverService.sendMsg("/e", otherPlayer);
+                    } catch (RemoteException e) {
+                        System.out.println("Erro no atualizaChat do jogador: " + e.getMessage());
+                    }
+
+                } else {
+                    chatArea.setText(chatArea.getText() + "\n Seu adversário solicitou empate\n Envie /e para aceitar.");
+                }
+            } else if (msg.equals("/f")) {
+                chatArea.setText(chatArea.getText() + "\n Fim de jogo. Você perdeu!");
+                title.setText("Fim de jogo! Você perdeu.");
+                disableAllButtons();
+                gameEnd = true;
+            } else if (msg.equals("/i")) {//Quando os dois se conectam o jogador 1 pode jogar
+                if (idPlayer == 1) {
+                    activeButtons = true;
+                    updateButtonsStates();
+                    chatField.setEnabled(true);
+                    chatButton.setEnabled(true);
+                    title.setText("Jogador #1. Inicie a partida!");
+                    chatArea.setText("Jogador #2 se conectou.");
+                }
+            } else if (!msg.isBlank()) {
+                chatArea.setText(chatArea.getText() + "\n Adversario: " + msg);
             }
+            chatArea.setCaretPosition(chatArea.getText().length());
         }
 
-        public int receiveMove() {
-            int n = -1;
-            try {
-                n = input.readInt();
-                System.out.println("Jogador #" + otherPlayer + " clicou o botão #" + n);
-            } catch (IOException ex) {
-                System.out.println("Erro no recebeJogada() do Jogador");
+        @Override
+        public void updateTurn(int n, int lastPosition) throws RemoteException {
+            //Aguarda seu turno enquanto recebe uma jogada válida do adversário
+
+            title.setText("Seu adversário clicou o botão #" + n + ". Sua vez");
+            //No início do jogo apenas dispões as peças no tabuleiro
+            if (qtdPiecesAdv < 9) {
+                //Atualiza o vetor com a jogada recebida do adversário
+                if (idPlayer == 1) {
+                    positions[n - 1] = 2;
+                } else {
+                    positions[n - 1] = 1;
+                }
+                qtdPiecesAdv++;
+            } else {//Desenvolvimento do jogo após peças dispostas
+                //Atualiza o vetor trocando a jogada do advserário com a posição vazia
+                if (idPlayer == 1) {//n-1 é a posição do botão na interface
+                    positions[lastPosition] = 0;
+                    positions[n - 1] = 2;
+                } else {
+                    positions[lastPosition] = 0;
+                    positions[n - 1] = 1;
+                }
             }
+            //Só habilita a movimentação de peças após as 9 estiverem dispostas no tabuleiro
+            if (qtdPieces == 9 && qtdPiecesAdv == 9) {
+                //Habilita somente as peças do jogador correspondente ao turno
+                if (idPlayer == 1) {
+                    alterButtonsStates(1, true);
+                    alterButtonsStates(2, false);
+                } else {
+                    alterButtonsStates(2, true);
+                    alterButtonsStates(1, false);
+                }
 
-            return n;
-        }
-
-        public void closeConnection() {
-            try {
-                socket.close();
-                System.out.println("CONEXÃO ENCERRADA");
-            } catch (IOException ex) {
-                System.out.println("Erro no fechaConexao() do Cliente");
+                updateImagesButtons();
+            } else {//No início do jogo apenas atualiza o tabuleiro de acordo com as peças colocadas
+                activeButtons = true;
+                updateButtonsStates();
             }
         }
-
     }
-
-    private class ConexaoChat {
-
-        private Socket socket;
-        private DataInputStream input;
-        private DataOutputStream output;
-
-        public ConexaoChat() {
-            try {
-                //Se conecta via socket ao chat do servidor
-                socket = new Socket("localhost", 51738);
-                input = new DataInputStream(socket.getInputStream());
-                output = new DataOutputStream(socket.getOutputStream());
-            } catch (IOException ex) {
-                System.out.println("Erro no construtor do chat");
-            }
-        }
-
-        public void sendMsg(String msg) {
-            try {
-                output.writeUTF(msg);
-                output.flush();
-            } catch (IOException ex) {
-                System.out.println("Erro no enviaMensagem() do Cliente");
-            }
-        }
-
-        public String receiveMsg() {
-            String msg = "";
-            try {
-                msg = input.readUTF();
-            } catch (IOException ex) {
-                System.out.println("Erro no recebeMensagem() do Cliente");
-                System.exit(0);
-            }
-
-            return msg;
-        }
-
-        public void closeConnection() {
-            try {
-                socket.close();
-                System.out.println("-----CONEXÃO ENCERRADA-----");
-            } catch (IOException ex) {
-                System.out.println("Erro no fechaConexao() do ConexaoChat");
-            }
-        }
-
-    }//A partir dessa linha são códigos gerados pela IDE Netbeans, utlizada para criação do projeto.
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -1168,7 +1131,7 @@ public class Client extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void chatButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_chatButtonActionPerformed
-        enviarMensagemChat();
+        sendChatMsg();
     }//GEN-LAST:event_chatButtonActionPerformed
 
     private void chatFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_chatFieldActionPerformed
@@ -1177,199 +1140,199 @@ public class Client extends javax.swing.JFrame {
 
     private void b1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b1ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 0;
         }
-        cliqueBotao(1);
+        buttonClick(1);
     }//GEN-LAST:event_b1ActionPerformed
 
     private void b2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b2ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 1;
         }
-        cliqueBotao(2);
+        buttonClick(2);
     }//GEN-LAST:event_b2ActionPerformed
 
     private void b3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b3ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 2;
         }
-        cliqueBotao(3);
+        buttonClick(3);
     }//GEN-LAST:event_b3ActionPerformed
 
     private void b4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b4ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 3;
         }
-        cliqueBotao(4);
+        buttonClick(4);
     }//GEN-LAST:event_b4ActionPerformed
 
     private void b5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b5ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 4;
         }
-        cliqueBotao(5);
+        buttonClick(5);
     }//GEN-LAST:event_b5ActionPerformed
 
     private void b6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b6ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 5;
         }
-        cliqueBotao(6);
+        buttonClick(6);
     }//GEN-LAST:event_b6ActionPerformed
 
     private void b7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b7ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 6;
         }
-        cliqueBotao(7);
+        buttonClick(7);
     }//GEN-LAST:event_b7ActionPerformed
 
     private void b8ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b8ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 7;
         }
-        cliqueBotao(8);
+        buttonClick(8);
     }//GEN-LAST:event_b8ActionPerformed
 
     private void b9ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b9ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 8;
         }
-        cliqueBotao(9);
+        buttonClick(9);
     }//GEN-LAST:event_b9ActionPerformed
 
     private void b10ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b10ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 9;
         }
-        cliqueBotao(10);
+        buttonClick(10);
     }//GEN-LAST:event_b10ActionPerformed
 
     private void b11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b11ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 10;
         }
-        cliqueBotao(11);
+        buttonClick(11);
     }//GEN-LAST:event_b11ActionPerformed
 
     private void b12ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b12ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 11;
         }
-        cliqueBotao(12);
+        buttonClick(12);
     }//GEN-LAST:event_b12ActionPerformed
 
     private void b13ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b13ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 12;
         }
-        cliqueBotao(13);
+        buttonClick(13);
     }//GEN-LAST:event_b13ActionPerformed
 
     private void b14ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b14ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 13;
         }
-        cliqueBotao(14);
+        buttonClick(14);
     }//GEN-LAST:event_b14ActionPerformed
 
     private void b15ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b15ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 14;
         }
-        cliqueBotao(15);
+        buttonClick(15);
     }//GEN-LAST:event_b15ActionPerformed
 
     private void b16ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b16ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 15;
         }
-        cliqueBotao(16);
+        buttonClick(16);
     }//GEN-LAST:event_b16ActionPerformed
 
     private void b17ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b17ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 16;
         }
-        cliqueBotao(17);
+        buttonClick(17);
     }//GEN-LAST:event_b17ActionPerformed
 
     private void b18ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b18ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 17;
         }
-        cliqueBotao(18);
+        buttonClick(18);
     }//GEN-LAST:event_b18ActionPerformed
 
     private void b19ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b19ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 18;
         }
-        cliqueBotao(19);
+        buttonClick(19);
     }//GEN-LAST:event_b19ActionPerformed
 
     private void b20ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b20ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 19;
         }
-        cliqueBotao(20);
+        buttonClick(20);
     }//GEN-LAST:event_b20ActionPerformed
 
     private void b21ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b21ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 20;
         }
-        cliqueBotao(21);
+        buttonClick(21);
     }//GEN-LAST:event_b21ActionPerformed
 
     private void b22ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b22ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 21;
         }
-        cliqueBotao(22);
+        buttonClick(22);
     }//GEN-LAST:event_b22ActionPerformed
 
     private void b23ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b23ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 22;
         }
-        cliqueBotao(23);
+        buttonClick(23);
     }//GEN-LAST:event_b23ActionPerformed
 
     private void b24ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b24ActionPerformed
         clickCounter++;
-        if(clickCounter == 1) {
+        if (clickCounter == 1) {
             lastPosition = 23;
         }
-        cliqueBotao(24);
+        buttonClick(24);
     }//GEN-LAST:event_b24ActionPerformed
 
     private void chatFieldKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_chatFieldKeyPressed
         if (evt.getKeyCode() == evt.VK_ENTER) {
-            enviarMensagemChat();
+            sendChatMsg();
         }
     }//GEN-LAST:event_chatFieldKeyPressed
 
