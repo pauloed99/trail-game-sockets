@@ -77,10 +77,10 @@ public class Server extends UnicastRemoteObject implements IServerService {
         try {
             /*
                 - Antes de executar o servidor execute o rmiregistry dentro do
-                diretório de classes: tsoroyematatu\target\classes
+                diretório de classes: trail_game\target\classes
                 
                 1) Abrir terminal e navegar até o Path:
-                        cd (Diretório do projeto)/tsoroyematatu/target/classes
+                        cd (Diretório do projeto)/target/classes
             
                 2) Digitar comando dentro do diretório para executar o RMIRegistry
                         rmiregistry

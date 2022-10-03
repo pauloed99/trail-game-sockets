@@ -752,9 +752,10 @@ public class Client extends javax.swing.JFrame {
         public void updateTurn(int n, int lastPosition) throws RemoteException {
             //Aguarda seu turno enquanto recebe uma jogada válida do adversário
 
-            title.setText("Seu adversário clicou o botão #" + n + ". Sua vez");
+            
             //No início do jogo apenas dispões as peças no tabuleiro
             if (qtdPiecesAdv < 9) {
+                
                 //Atualiza o vetor com a jogada recebida do adversário
                 if (idPlayer == 1) {
                     positions[n - 1] = 2;
@@ -762,8 +763,14 @@ public class Client extends javax.swing.JFrame {
                     positions[n - 1] = 1;
                 }
                 qtdPiecesAdv++;
+                if(qtdPiecesAdv == 9 && idPlayer == 1) {
+                    title.setText("Seu adversário clicou o botão #" + n + ". Sua vez\nClique em um botão seu e em outro botão vazio para movimentar sua peça");
+                } else {
+                    title.setText("Seu adversário clicou o botão #" + n + ". Sua vez");
+                }
             } else {//Desenvolvimento do jogo após peças dispostas
                 //Atualiza o vetor trocando a jogada do advserário com a posição vazia
+                title.setText("Seu adversário clicou o botão #" + n + ". Sua vez\nClique em um botão seu e em outro botão vazio para movimentar sua peça");
                 if (idPlayer == 1) {//n-1 é a posição do botão na interface
                     positions[lastPosition] = 0;
                     positions[n - 1] = 2;
